@@ -57,11 +57,12 @@ class Goal:
         pygame.draw.rect(screen, self.color, (self.rect.x - camera_x, self.rect.y, self.rect.width, self.rect.height))
 
 class Game:
-    def __init__(self, training_mode=False):
+    def __init__(self, training_mode=False, visual_mode=False):
         pygame.init()
         self.training_mode = training_mode
+        self.visual_mode = visual_mode
         
-        if not training_mode:
+        if not training_mode or visual_mode:
             self.WIDTH, self.HEIGHT = 800, 600
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
             pygame.display.set_caption("シンプル横スクロールゲーム")
@@ -282,25 +283,29 @@ class Game:
     def check_game_over(self):
         # 画面外に落ちたらゲームオーバー
         if self.player.rect.top > self.HEIGHT:
-            font = pygame.font.SysFont(None, 72)
-            text = font.render("GAME OVER", True, self.RED)
-            self.screen.blit(text, (self.WIDTH // 2 - text.get_width() // 2, self.HEIGHT // 2 - text.get_height() // 2))
-            pygame.display.flip()
-            pygame.time.wait(1000)  # 2秒間表示
             self.game_over = True
-            self.running = False
+        
+            # トレーニングモードじゃないときだけ表示する
+            if not self.training_mode and self.screen:
+                font = pygame.font.SysFont(None, 72)
+                text = font.render("GAME OVER", True, self.RED)
+                self.screen.blit(text, (self.WIDTH // 2 - text.get_width() // 2, self.HEIGHT // 2 - text.get_height() // 2))
+                pygame.display.flip()
+                pygame.time.wait(1000)
         
         # ゴールに到達したらゲームクリア
         goal_rect = pygame.Rect(self.goal.rect.x - self.camera_x, self.goal.rect.y, self.goal.rect.width, self.goal.rect.height)
         if self.player.rect.colliderect(goal_rect):
-            final_time = int(time.time() - self.start_time)  # 最終タイム
-            font = pygame.font.SysFont(None, 72)
-            text = font.render(f"GOAL! {final_time}s", True, self.BLACK)
-            self.screen.blit(text, (self.WIDTH // 2 - text.get_width() // 2, self.HEIGHT // 2 - text.get_height() // 2))
-            pygame.display.flip()
-            pygame.time.wait(1000)  # 2秒間表示
             self.goal_reached = True
-            self.running = False
+        
+            # トレーニングモードじゃないときだけ表示する
+            if not self.training_mode and self.screen:
+                final_time = int(time.time() - self.start_time)
+                font = pygame.font.SysFont(None, 72)
+                text = font.render(f"GOAL! {final_time}s", True, self.BLACK)
+                self.screen.blit(text, (self.WIDTH // 2 - text.get_width() // 2, self.HEIGHT // 2 - text.get_height() // 2))
+                pygame.display.flip()
+                pygame.time.wait(1000)
     
     def draw(self):
         # 背景を描画
