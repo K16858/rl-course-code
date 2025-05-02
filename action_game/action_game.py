@@ -236,15 +236,19 @@ class Game:
     
     def _calculate_reward(self):
         reward = 0
-        # 進んだ距離に比例した報酬
-        reward += self.camera_x * 0.01
+        # ゴールまでの距離
+        goal_distance = (self.goal.rect.x - self.camera_x - self.player.rect.x) / self.WIDTH
+        normalized_goal_distance = max(0, min(1.0, goal_distance))
+        
+        proximity_reward = 1.0 - normalized_goal_distance
+        reward += proximity_reward * 0.1  # スケール調整
 
         # if self.player.rect.x < 100:  # 一定以上左にいると減点
         #     reward -= (100 - self.player.rect.x) * 0.01
             
         # ゴール達成でボーナス
         if self.goal_reached:
-            reward += 100.0
+            reward += 1.0
         
         # 穴に落ちたり死んだらペナルティ
         # if self.game_over:
