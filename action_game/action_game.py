@@ -176,7 +176,22 @@ class Game:
         state.append(float(self.player.on_ground))
         
         return state
-
+    
+    def _calculate_reward(self):
+        reward = 0
+        # 進んだ距離に比例した報酬
+        reward += self.camera_x * 0.01
+        
+        # ゴール達成でボーナス
+        if self.goal_reached:
+            reward += 100.0
+        
+        # 穴に落ちたり死んだらペナルティ
+        if self.game_over:
+            reward -= 50.0
+            
+        return reward
+    
     def step(self, action):
         # 行動を実行
         if action == 0:  # 左移動
@@ -194,37 +209,13 @@ class Game:
         self.player.update(self.GRAVITY)
         self.check_collisions()
         
-        # 学習中はゲームオーバーの表示はスキップ
-        if not self.training_mode:
-            self.check_game_over()
-        else:
-            # 画面外に落ちたらゲームオーバー判定のみ
-            if self.player.rect.top > self.HEIGHT:
-                self.game_over = True
-                self.running = False
-            
-            # ゴール到達判定のみ
-            goal_rect = pygame.Rect(self.goal.rect.x - self.camera_x, self.goal.rect.y, self.goal.rect.width, self.goal.rect.height)
-            if self.player.rect.colliderect(goal_rect):
-                self.goal_reached = True
-                self.running = False
+        self.check_game_over()
         
         # 次の状態
         next_state = self._get_state()
         
         # 報酬計算
-        reward = 0
-        
-        # 進んだ距離に比例した報酬
-        reward += self.camera_x * 0.01
-        
-        # ゴール達成でボーナス
-        if self.goal_reached:
-            reward += 100.0
-        
-        # 穴に落ちたり死んだらペナルティ
-        if self.game_over:
-            reward -= 50.0
+        reward = self._calculate_reward()
         
         # ゲーム終了フラグ
         done = self.goal_reached or self.game_over or not self.running
