@@ -330,7 +330,7 @@ class Game:
             self.handle_input()
             self.player.update(self.GRAVITY)
             self.check_collisions()
-            if not self.training_mode:
+            if not self.training_mode and not self.visual_mode:
                 self.draw()
             self.check_game_over()
             

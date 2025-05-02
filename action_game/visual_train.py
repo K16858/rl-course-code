@@ -9,6 +9,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
 from model import DQNModel
+import pygame
 
 
 # デバイスの設定
@@ -163,18 +164,29 @@ def train_dqn(episodes=1000):
         state = env.reset()
         done = False
         total_reward = 0
-        
         while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return  # 学習を終了
+                    
             action = agent.select_action(state, [0,1,2])
             next_state, reward, done, info = env.step(action)
             
-            # メモリに経験を追加
+            # 画面の更新を確実にする
+            if env.visual_mode:
+                if episode % 5 == 0:  # 5エピソードに1回だけ表示を遅くする
+                    pygame.time.delay(10)  # 確認用の遅延
+                else:
+                    pygame.time.delay(1)  # 通常は最小限の遅延
+                env.draw()  # 描画関数を呼び出し
+                pygame.display.flip()  # 画面を更新する
+            
             agent.memory.add(state, action, reward, next_state, done)
             agent.train()    
             state = next_state
             total_reward += reward
-        
-        
+            
         if episode % agent.update_target_freq == 0:
             agent.update_target_network()
         
