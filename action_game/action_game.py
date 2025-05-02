@@ -57,10 +57,11 @@ class Goal:
         pygame.draw.rect(screen, self.color, (self.rect.x - camera_x, self.rect.y, self.rect.width, self.rect.height))
 
 class Game:
-    def __init__(self, training_mode=False, visual_mode=False):
+    def __init__(self, training_mode=False, visual_mode=False, map_data=None):
         pygame.init()
         self.training_mode = training_mode
         self.visual_mode = visual_mode
+        self.map_data = map_data
         
         if not training_mode or visual_mode:
             self.WIDTH, self.HEIGHT = 800, 600
@@ -84,7 +85,7 @@ class Game:
         self.GRAVITY = 0.8
         
         # ゲーム要素の初期化
-        self.init_game()
+        self.init_game(self.map_data)
         
         # カメラ位置（横スクロール用）
         self.camera_x = 0
@@ -98,34 +99,90 @@ class Game:
         self.start_time = time.time()  # 開始時間を記録
         self.elapsed_time = 0  # 経過時間
     
-    def init_game(self):
-        # プレイヤーの設定
+    def init_game(self, map_data=None):
+        # プレイヤーの設定（デフォルト位置）
         self.player = Player(100, self.HEIGHT - 100, 30, 50, self.BLUE)
         
-        # 床（地面）
+        # 床
         self.ground = pygame.Rect(0, self.HEIGHT - 50, 3000, 50)
         
-        # 障害物リスト
-        self.obstacles = [
-            Obstacle(300, self.HEIGHT - 100, 100, 50, self.RED),
-            Obstacle(500, self.HEIGHT - 100, 100, 20, self.RED),
-            Obstacle(700, self.HEIGHT - 150, 150, 20, self.RED),
-            Obstacle(1000, self.HEIGHT - 100, 200, 50, self.RED)
-        ]
+        # マップ要素の初期化
+        self.obstacles = []
+        self.holes = []
+        self.goal = None
         
-        # 穴リスト
-        self.holes = [
-            Hole(400, self.HEIGHT - 50, 80),
-            Hole(800, self.HEIGHT - 50, 120),
-            Hole(1200, self.HEIGHT - 50, 100)
-        ]
+        # マップデータが指定されている場合はそれを使用
+        if map_data:
+            self._load_map_from_data(map_data)
+        else:
+            # デフォルトマップを設定
+            self.obstacles = [
+                Obstacle(300, self.HEIGHT - 100, 100, 50, self.RED),
+                Obstacle(500, self.HEIGHT - 100, 100, 20, self.RED),
+                Obstacle(700, self.HEIGHT - 150, 150, 20, self.RED),
+                Obstacle(1000, self.HEIGHT - 100, 200, 50, self.RED)
+            ]
+            
+            self.holes = [
+                Hole(400, self.HEIGHT - 50, 80),
+                Hole(800, self.HEIGHT - 50, 120),
+                Hole(1200, self.HEIGHT - 50, 100)
+            ]
+            
+            # ゴール
+            self.goal = Goal(1500, self.HEIGHT - 150, 50, 100, self.YELLOW)
+
+    def _load_map_from_data(self, map_data):
+        # マップデータが文字列なら行ごとに分割
+        if isinstance(map_data, str):
+            rows = map_data.strip().split('\n')
+        else:
+            rows = map_data
         
-        # ゴール
-        self.goal = Goal(1500, self.HEIGHT - 150, 50, 200, self.YELLOW)
+        # グリッドサイズ
+        grid_width = 50
+        grid_height = 50
+        
+        # マップの高さと幅を取得
+        map_height = len(rows)
+        map_width = max(len(row) for row in rows)
+        
+        # 地面の長さを調整（マップの長さに合わせる）
+        self.ground = pygame.Rect(0, self.HEIGHT - 50, map_width * grid_width + 100, 50)
+        
+        # マップデータを解析
+        for y, row in enumerate(rows):
+            for x, cell in enumerate(row):
+                # 画面上の座標計算（左上がマップの原点）
+                pos_x = x * grid_width
+                pos_y = self.HEIGHT - (map_height - y) * grid_height
+                
+                if cell == '#':
+                    # 障害物を追加
+                    self.obstacles.append(
+                        Obstacle(pos_x, pos_y, grid_width, grid_height, self.RED)
+                    )
+                elif cell == 'H':
+                    # 穴を追加
+                    self.holes.append(
+                        Hole(pos_x, pos_y + grid_height, grid_width)
+                    )
+                elif cell == 'G':
+                    # ゴールを追加
+                    self.goal = Goal(pos_x, pos_y - grid_height, grid_width, grid_height*2, self.YELLOW)
+                elif cell == 'P':
+                    # プレイヤー開始位置を設定
+                    self.player.rect.x = pos_x
+                    self.player.rect.y = pos_y
+        
+        # ゴールがなければデフォルト位置に
+        if self.goal is None:
+            self.goal = Goal(map_width * grid_width - 100, 
+                            self.HEIGHT - 150, 50, 100, self.YELLOW)
         
     def reset(self):
         # ゲーム状態をリセット
-        self.init_game()
+        self.init_game(map_data=self.map_data)
         self.camera_x = 0
         self.running = True
         self.goal_reached = False

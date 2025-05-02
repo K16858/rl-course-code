@@ -12,6 +12,12 @@ from model import DQNModel
 import pygame
 import os.path
 
+map = """
+..............................................................................................G
+..........................##.................##........................#.........#.............
+..P...................##...HH...............###HHH.....................#.........#H............
+...............................................................................................
+"""
 
 # デバイスの設定
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -38,6 +44,7 @@ class DQNAgent:
     def __init__(self, state_shape, action_size):
         self.state_shape = state_shape  # (channels, height, width)
         self.action_size = action_size
+        # ハイパーパラメータ
         self.gamma = 0.99  # 割引率
         self.epsilon = 1.0 # 探索率
         self.epsilon_min = 0.1 # 最小探索率
@@ -161,7 +168,7 @@ def train_dqn(episodes=1000, load_model=None, epsilon=None):
     
     loss_plot_filename = f"loss_history_{timestamp}.png"
 
-    env = Game(training_mode=True, visual_mode=True)
+    env = Game(training_mode=True, visual_mode=True, map_data=map)
     action_size = 3  # すべての可能な行動数（右，左，ジャンプ）
     state_shape = 8  # 状態の形状
     agent = DQNAgent(state_shape, action_size)
@@ -228,5 +235,4 @@ def train_dqn(episodes=1000, load_model=None, epsilon=None):
 
 # --- 実行 ---
 if __name__ == "__main__":
-    train_dqn(episodes=5000)
-    
+    train_dqn(episodes=5000, load_model="dqn_action_game_20250503_002310.pth", epsilon=0.25)
