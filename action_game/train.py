@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.optim as optim
 import random
 from action_game import Game
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
 from model import DQNModel
@@ -178,6 +180,11 @@ def train_dqn(episodes=1000):
         
         if episode % 10 == 0:
             print(f"エピソード {episode}/{episodes} - 報酬: {total_reward} - ε: {agent.epsilon:.2f}")
+        
+        if episode % 100 == 0:
+            # モデルの保存
+            torch.save(agent.model.state_dict(), model_filename)
+            print(f"モデルを {model_filename} として保存")
     
     # 学習済みモデルの保存
     torch.save(agent.model.state_dict(), model_filename)

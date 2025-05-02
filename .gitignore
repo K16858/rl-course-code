@@ -4,3 +4,4 @@ chess/*.png
 action_game/*.png
 /*.pth
 /*.png
+__pycache__
