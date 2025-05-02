@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from model import DQNModel
 import pygame
+import os.path
 
 
 # デバイスの設定
@@ -37,14 +38,14 @@ class DQNAgent:
     def __init__(self, state_shape, action_size):
         self.state_shape = state_shape  # (channels, height, width)
         self.action_size = action_size
-        self.gamma = 0.95  # 割引率
+        self.gamma = 0.99  # 割引率
         self.epsilon = 1.0 # 探索率
         self.epsilon_min = 0.1 # 最小探索率
-        self.epsilon_decay = 0.999 # 探索率の減衰率
+        self.epsilon_decay = 0.995 # 探索率の減衰率
         self.batch_size = 64 # バッチサイズ
         self.learning_rate = 0.001 # 学習率
         
-        self.memory = ReplayMemory(10000)
+        self.memory = ReplayMemory(50000)
         
         # メインネットワークとターゲットネットワーク
         self.model = DQNModel(state_shape, action_size).to(device)
@@ -55,7 +56,7 @@ class DQNAgent:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.criterion = nn.MSELoss()
         self.loss_history = []
-        self.update_target_freq = 10  # 10エピソードごとに更新
+        self.update_target_freq = 5  # 10エピソードごとに更新
         
     def select_action(self, state, valid_moves):
         if np.random.rand() < self.epsilon:
@@ -149,15 +150,34 @@ def plot_loss_history(loss_history, save_path='loss_history.png', window_size=10
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
     
-def train_dqn(episodes=1000):
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    model_filename = f"dqn_action_game_{timestamp}.pth"
+def train_dqn(episodes=1000, load_model=None, epsilon=None):
+    # タイムスタンプは新しく生成するか、読み込むモデル名から取得
+    if load_model:
+        timestamp = os.path.basename(load_model).replace("dqn_action_game_", "").replace(".pth", "")
+        model_filename = load_model
+    else:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        model_filename = f"dqn_action_game_{timestamp}.pth"
+    
     loss_plot_filename = f"loss_history_{timestamp}.png"
 
     env = Game(training_mode=True, visual_mode=True)
     action_size = 3  # すべての可能な行動数（右，左，ジャンプ）
-    state_shape = 8  # PyTorchでは (channels, height, width)
+    state_shape = 8  # 状態の形状
     agent = DQNAgent(state_shape, action_size)
+    
+    # モデルを読み込む処理
+    if load_model and os.path.exists(load_model):
+        agent.model.load_state_dict(torch.load(load_model))
+        agent.target_model.load_state_dict(agent.model.state_dict())
+        print(f"モデルを {load_model} から読み込み")
+        
+        # イプシロンを指定されていれば上書き
+        if epsilon is not None:
+            agent.epsilon = epsilon
+            print(f"イプシロン値を {epsilon} に設定")
+    else:
+        print("新しくモデルを作るね～")
     
     print("学習開始")
     for episode in range(episodes):
@@ -176,7 +196,7 @@ def train_dqn(episodes=1000):
             # 画面の更新を確実にする
             if env.visual_mode:
                 if episode % 5 == 0:  # 5エピソードに1回だけ表示を遅くする
-                    pygame.time.delay(10)  # 確認用の遅延
+                    pygame.time.delay(5)  # 確認用の遅延
                 else:
                     pygame.time.delay(1)  # 通常は最小限の遅延
                 env.draw()  # 描画関数を呼び出し
@@ -208,4 +228,5 @@ def train_dqn(episodes=1000):
 
 # --- 実行 ---
 if __name__ == "__main__":
-    train_dqn(episodes=500)
+    train_dqn(episodes=5000)
+    

@@ -121,7 +121,7 @@ class Game:
         ]
         
         # ゴール
-        self.goal = Goal(1500, self.HEIGHT - 150, 50, 100, self.YELLOW)
+        self.goal = Goal(1500, self.HEIGHT - 150, 50, 200, self.YELLOW)
         
     def reset(self):
         # ゲーム状態をリセット
@@ -181,14 +181,17 @@ class Game:
         reward = 0
         # 進んだ距離に比例した報酬
         reward += self.camera_x * 0.01
-        
+
+        # if self.player.rect.x < 100:  # 一定以上左にいると減点
+        #     reward -= (100 - self.player.rect.x) * 0.01
+            
         # ゴール達成でボーナス
         if self.goal_reached:
             reward += 100.0
         
         # 穴に落ちたり死んだらペナルティ
-        if self.game_over:
-            reward -= 50.0
+        # if self.game_over:
+        #     reward -= 50.0
             
         return reward
     
